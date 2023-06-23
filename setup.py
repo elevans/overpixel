@@ -6,5 +6,8 @@ setup(
     author="Edward Evans",
     author_email="elevans2@wisc.edu",
     platforms=["any"],
+    entry_points={
+        'console_scripts': ['overpixel=overpixel.__init__:main']
+    },
     description="A package for analyzing two images for pixel correlation.",
 )
