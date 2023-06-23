@@ -1,0 +1,16 @@
+name: overpixel
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python >= 3.7
+  # Project dependencies
+  - numpy
+  - scikit-image
+  - matplotlib-base
+  - tifffile
+  - pandas
+  # Project from source
+  - pip
+  - pip:
+    - -e .
