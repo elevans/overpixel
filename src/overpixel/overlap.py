@@ -20,82 +20,73 @@ threshold_methods = {
     "yen": skif.threshold_yen
 }
 
-def run(batch: bool = False):
-    if batch:
-        # # call the run method on each dataset in the batch
-        pass
+def run(narr: np.ndarray, threshold_method: str = None, threshold_values: Sequence[float] = None, show: bool = False) -> List[float]:
+    """
+    :param
+    """
+    # TODO: make threshold_values -> Sequence[float] matching narr channel length
+    # TODO: adapt to apply to n-channel data
+    if threshold_method is None and threshold_values is None:
+        return _compute(narr, threshold_method="otsu", show=show)
+    elif threshold_method is not None and threshold_values is None:
+        return _compute(narr, threshold_method=threshold_method, show=show)
+    elif threshold_values is not None and threshold_method is None:
+        if narr.shape[2] != len(threshold_values):
+            raise ValueError(f"The number of channels ({narr.shape[2]}) and threshold values ({len(threshold_values)}) do not match.")
+        return _compute(narr, threshold_values=threshold_values, show=show)
     else:
-        # call the run method only on the data once.
-        pass
-    # create new dataframe and append data
-    # return dataframe
-    return
+        raise ValueError(f"A threshold method ({threshold_method}) and threshold value ({threshold_values}) was provided, only one is supported.")
 
-def compute(narr: np.ndarray, threshold_method: str = "otsu", show: bool = False) -> List:
+
+def _compute(narr: np.ndarray, threshold_method: str = None, threshold_values: float = None, show: bool = False) -> List[float]:
     """
     :param narr: Input numpy.ndarray with dimension shape (row, col, ch).
     :param threshold_method: Threshold method to use (default="otsu").
     """
-
-    # create threshold based on config -- default to otsu
-    mask_a = _get_mask(narr[:, :, 0], threshold_method)
-    mask_b = _get_mask(narr[:, :, 1], threshold_method)
+    masks = []
+    overlaps = []
+    # get mask from threshold or predefined threshold value
+    if threshold_method is not None and threshold_values is None:
+        for i in range(narr.shape[2]):
+            masks.append(_get_mask(narr[:, :, i], threshold_method))
+    elif threshold_values is not None and threshold_method is None:
+        for i in range(narr.shape[2]):
+            masks.append(narr[:, :, i] > threshold_values[i])
+    else:
+        raise ValueError(f"Threshold method ({threshold_method}) and threshold values ({threshold_values}) provided are incompatible.")
 
     # compute overlaps
-    mutual_overlap = _get_mutual_overlap(mask_a, mask_b)
-    a_overlap = _get_exclusive_overlap(mask_a, mask_b)
-    b_overlap = _get_exclusive_overlap(mask_b, mask_a)
+    overlaps.append(_get_mutual_overlap(masks))
+    overlaps.extend(_get_exclusive_overlaps(masks))
+
     if show:
-        # setup matplotlib figure
-        fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10,7), sharex=True, sharey=True)
-        fig.suptitle("sample view")
-        ax0 = axes[0, 0]
-        ax1 = axes[0, 1]
-        ax2 = axes[1, 0]
-        ax3 = axes[1, 1]
-        # draw images
-        ax0.imshow(narr[:, :, 0], cmap='gray', aspect='equal')
-        ax0.set_title("input a")
-        ax1.imshow(narr[:, :, 1], cmap='gray', aspect='equal')
-        ax1.set_title("input b")
-        ax2.imshow(mask_a, cmap='Reds', alpha=0.5)
-        ax2.imshow(mask_b, cmap='Blues', alpha=0.5)
-        ax2.set_title("overlap")
-        # create color legend
-        legend_patches = [
-            patches.Patch(color='red', alpha=0.5, label='Mask A'),
-            patches.Patch(color='blue', alpha=0.5, label='Mask B')
-            ]
-        ax3.legend(handles=legend_patches, loc="center", bbox_to_anchor=(0, 0.5), frameon=False)
-        ax3.axis('off')
-        # display plot
-        fig.tight_layout()
-        plt.show()
+        _show(narr, masks)
 
-    return [mutual_overlap, a_overlap, b_overlap]
+    return overlaps
 
 
-def _get_exclusive_overlap(narr_a: np.ndarray, narr_b: np.ndarray) -> float:
+def _get_exclusive_overlaps(masks: List[np.ndarray]) -> List[float]:
     """
     Compute the percent of all pixels that are overlapped by mask "A", exclusively.
     """
-    mask_OR = np.logical_or(narr_a, narr_b)
-    count_OR = np.count_nonzero(mask_OR)
-    narr_a_count = np.count_nonzero(narr_a)
+    results = []
+    masks_OR = np.logical_or.reduce(masks)
+    count_OR = np.count_nonzero(masks_OR)
+    for mask in masks:
+        count_mask = np.count_nonzero(mask)
+        results.append(count_mask / count_OR)
 
-    return narr_a_count / count_OR
+    return results
 
-def _get_mutual_overlap(narr_a: np.ndarray, narr_b: np.ndarray) -> float:
-    """
-    Compute the percent that mask "A" and mask "B" overlap.
-    """
-    mask_AND = np.logical_and(narr_a, narr_b)
-    count_AND = np.count_nonzero(mask_AND)
-    narr_a_count = np.count_nonzero(narr_a)
-    narr_b_count = np.count_nonzero(narr_b)
+def _get_mutual_overlap(masks: List[np.ndarray]) -> float:
+    if len(masks) < 2:
+        raise ValueError("At least two masks are required.")
     
-    return count_AND / min(narr_a_count, narr_b_count)
+    masks_AND = np.logical_and.reduce(masks)
+    count_AND = np.count_nonzero(masks_AND)
+    counts = [np.count_nonzero(mask) for mask in masks]
 
+    return count_AND / min(counts)
 
 def _get_mask(narr: np.ndarray, method: str) -> np.ndarray:
     """
@@ -104,6 +95,32 @@ def _get_mask(narr: np.ndarray, method: str) -> np.ndarray:
     thres = threshold_methods[method](narr)
     return narr > thres
 
-def _to_dataframe(data: Sequence[float]) -> pd.DataFrame:
-    columns = ["mutual_overlap", "a_overlap", "b_overlap"]
-    return
+def _show(narr: np.ndarray, masks: Sequence[np.ndarray]):
+    """
+    Display the data
+    """
+    # setup matplotlib figure
+    fig, axes = plt.subplots(nrows=2, ncols=2, figsize=(10,7), sharex=True, sharey=True)
+    fig.suptitle("sample view")
+    ax0 = axes[0, 0]
+    ax1 = axes[0, 1]
+    ax2 = axes[1, 0]
+    ax3 = axes[1, 1]
+    # draw images
+    ax0.imshow(narr[:, :, 0], cmap='gray', aspect='equal')
+    ax0.set_title("input a")
+    ax1.imshow(narr[:, :, 1], cmap='gray', aspect='equal')
+    ax1.set_title("input b")
+    ax2.imshow(masks[0], cmap='Reds', alpha=0.5)
+    ax2.imshow(masks[1], cmap='Blues', alpha=0.5)
+    ax2.set_title("overlap")
+    # create color legend
+    legend_patches = [
+        patches.Patch(color='red', alpha=0.5, label='Mask A'),
+        patches.Patch(color='blue', alpha=0.5, label='Mask B')
+        ]
+    ax3.legend(handles=legend_patches, loc="center", bbox_to_anchor=(0, 0.5), frameon=False)
+    ax3.axis('off')
+    # display plot
+    fig.tight_layout()
+    plt.show()
