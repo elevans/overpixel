@@ -56,8 +56,8 @@ def _compute(narr: np.ndarray, threshold_method: str = None, threshold_values: f
         raise ValueError(f"Threshold method ({threshold_method}) and threshold values ({threshold_values}) provided are incompatible.")
 
     # compute overlaps
-    overlaps.append(_get_mutual_overlap(masks))
-    overlaps.extend(_get_exclusive_overlaps(masks))
+    overlaps.append(get_mutual_overlap(masks))
+    overlaps.extend(get_exclusive_overlaps(masks))
 
     if show:
         _show(narr, masks)
@@ -65,9 +65,16 @@ def _compute(narr: np.ndarray, threshold_method: str = None, threshold_values: f
     return overlaps
 
 
-def _get_exclusive_overlaps(masks: List[np.ndarray]) -> List[float]:
-    """
-    Compute the percent of all pixels that are overlapped by mask "A", exclusively.
+def get_exclusive_overlaps(masks: List[np.ndarray]) -> List[float]:
+    """Calculate the percentage of pixels exclusively overlapped by the first
+    mask in the given list.
+
+    This function takes a list of numpy ndarrays representing masks, where the first mask (mask A)
+    is at index 0. It calculates the percentage of pixels in each mask that are exclusively overlapped
+    by the first mask, and returns a list of floats representing these percentages.
+
+    :param masks: A list of numpy ndarrays representing masks, where mask A is at index 0.
+    :return: A list of floats representing the percentages of pixels exclusively overlapped by mask A.
     """
     results = []
     masks_OR = np.logical_or.reduce(masks)
@@ -78,7 +85,9 @@ def _get_exclusive_overlaps(masks: List[np.ndarray]) -> List[float]:
 
     return results
 
-def _get_mutual_overlap(masks: List[np.ndarray]) -> float:
+def get_mutual_overlap(masks: List[np.ndarray]) -> float:
+    """
+    """
     if len(masks) < 2:
         raise ValueError("At least two masks are required.")
     
