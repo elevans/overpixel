@@ -4,19 +4,21 @@ from typing import List, Sequence
 
 
 def exclusive_overlaps(masks: Sequence[np.ndarray]) -> List[float]:
-    """Calculate the percentage of pixels exclusively overlapped by the first
-    mask in the given list.
+    """
+    Calculates the overlap percentage of each mask in the input list with the logical OR of all masks.
 
-    This function takes a list of numpy ndarrays representing masks, where the first mask (mask A)
-    is at index 0. It calculates the percentage of pixels in each mask that are exclusively overlapped
-    by the first mask, and returns a list of floats representing these percentages.
-    The masks can be boolean or binary (uint8) arrays.
-
-    :param masks: A list of numpy ndarrays representing masks (bool or uint8), where mask A is at index 0.
-    :return: A list of floats representing the percentages of pixels exclusively overlapped by mask A.
+    :param masks: A sequence of numpy arrays representing masks.
+        Each mask should be of dtype uint8 and contain only the values 0 and 255.
+    :type masks: Sequence[numpy.ndarray]
+    :return: A list of float values representing the overlap percentage of each mask
+        with the logical OR of all masks. The list is in the same order as the input masks.
     :rtype: List[float]
-    :raises ValueError: If less than two masks are provided.
-    :raises TypeError: If any mask in the list is not boolean or binary (uint8).
+    :raises ValueError: If the number of masks is less than 2.
+    :raises TypeError: If any mask is not of dtype uint8 or contains values other than 0 and 255.
+
+    .. note::
+        The overlap percentage of a mask is calculated as the ratio of the number of True pixels
+        in the mask to the number of True pixels in the logical OR of all masks.
     """
     if len(masks) < 2:
         raise ValueError("At least two masks are required.")
@@ -38,16 +40,21 @@ def exclusive_overlaps(masks: Sequence[np.ndarray]) -> List[float]:
 
 
 def mutual_overlap(masks: List[np.ndarray]) -> float:
-    """Calculate the percentage of pixels mutually overlapped by multiple masks.
+    """Compute the intersection over minimum count for a list of binary numpy arrays.
 
-    This function calculates the mutual overlap percentage of a list of masks.
-    The masks can be boolean or binary (uint8) arrays.
+    This function computes the intersection over minimum count for a list of binary numpy arrays.
+    The intersection over minimum count is a measure of overlap between the masks, calculated
+    by dividing the count of pixels that are 255 in all the masks by the minimum count of pixels
+    that are 255 in any individual mask.
 
-    :param masks: A list of numpy ndarrays representing masks (bool or uint8).
-    :return: A float representing the mutual overlap of all the masks in the input list.
-    :rtype: float
-    :raises ValueError: If less than two masks are provided.
-    :raises TypeError: If any mask in the list is not boolean or binary (uint8).
+   :param masks: A list of numpy arrays where each array represents a binary mask.
+                  The arrays must have a data type of uint8 and contain only two distinct values: 0 and 255.
+   :type masks: List[numpy.ndarray]
+   :return: The intersection over minimum count, a float value between 0 and 1.
+   :rtype: float
+   :raises ValueError: If the number of masks in the input list is less than 2.
+   :raises TypeError: If any mask in the list is not binary (contains values other than 0 and 255).
+
     """
     if len(masks) < 2:
         raise ValueError("At least two masks are required.")
