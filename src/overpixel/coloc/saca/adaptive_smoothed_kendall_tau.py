@@ -40,6 +40,7 @@ class AdaptiveSmoothedKendallTau:
                     self._stop[i, j, k] = 0
 
         for s in range(self._TU):
+            print(f"[DEBUG] iteration: {s}/14")
             int_size = math.floor(size)
             self._singleiteration(
                 oldtau, oldsqrt_n, newtau, newsqrt_n, result, int_size, is_check
